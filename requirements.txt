@@ -1,0 +1,3 @@
+nes-py
+gym-super-mario-bros
+stable-baselines3[extra]
