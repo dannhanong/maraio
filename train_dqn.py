@@ -24,8 +24,7 @@ print(f"Using device: {device}")
 agent = DQNAgent(state_dim, action_dim, device)
 
 # Tạo thư mục với timestamp
-current_time = time.strftime('%Y%m%d_%H%M%S')
-checkpoint_dir = Path(f'checkpoints/dqn_{current_time}')
+checkpoint_dir = Path('checkpoints/dqn')
 checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
 # Training parameters
