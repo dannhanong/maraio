@@ -145,12 +145,21 @@ class DQNAgent:
     def load(self, path):
         checkpoint = torch.load(path)
         self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
+        
+        # Xử lý tương thích ngược với checkpoint cũ
+        if 'target_model_state_dict' in checkpoint:
+            self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
+        else:
+            # Nếu không có target_model trong checkpoint, copy từ model chính
+            self.target_model.load_state_dict(self.model.state_dict())
+        
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epsilon = checkpoint['epsilon']
         self.steps = checkpoint['steps']
-        self.epsilon_min = checkpoint['epsilon_min']
-        self.epsilon_decay = checkpoint['epsilon_decay']
+        
+        # Xử lý các thông số epsilon có thể không có trong checkpoint cũ
+        self.epsilon_min = checkpoint.get('epsilon_min', 0.1)  # default 0.1
+        self.epsilon_decay = checkpoint.get('epsilon_decay', 0.9995)  # default 0.9995
 
     def update_epsilon(self):
         if self.epsilon > self.epsilon_min:
