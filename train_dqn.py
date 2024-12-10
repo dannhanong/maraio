@@ -147,15 +147,16 @@ def calculate_reward(info, reward, prev_info):
     return total_reward
 
 def save_checkpoint(episode, reward, max_position):
-    """
-    Lưu checkpoint với thông tin training
-    """
+    """Lưu checkpoint với thông tin training"""
     global best_reward
     
     checkpoint = {
         'model_state_dict': agent.model.state_dict(),
+        'target_model_state_dict': agent.target_model.state_dict(),
         'optimizer_state_dict': agent.optimizer.state_dict(),
         'epsilon': float(agent.epsilon),
+        'epsilon_min': float(agent.epsilon_min),
+        'epsilon_decay': float(agent.epsilon_decay),
         'steps': int(agent.steps),
         'episode': int(episode),
         'best_reward': float(best_reward),
@@ -169,7 +170,6 @@ def save_checkpoint(episode, reward, max_position):
     if reward > best_reward:
         best_reward = reward
         torch.save(checkpoint, checkpoint_dir / 'best_model.pth')
-        print(f"\nNew best reward: {best_reward:.2f}")
 
 def load_checkpoint(path, device):
     checkpoint = torch.load(path, map_location=device)

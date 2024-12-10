@@ -134,18 +134,23 @@ class DQNAgent:
     def save(self, path):
         torch.save({
             'model_state_dict': self.model.state_dict(),
+            'target_model_state_dict': self.target_model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'epsilon': float(self.epsilon),
             'steps': int(self.steps),
+            'epsilon_min': float(self.epsilon_min),
+            'epsilon_decay': float(self.epsilon_decay)
         }, path)
 
     def load(self, path):
         checkpoint = torch.load(path)
         self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.target_model.load_state_dict(self.model.state_dict())
+        self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epsilon = checkpoint['epsilon']
         self.steps = checkpoint['steps']
+        self.epsilon_min = checkpoint['epsilon_min']
+        self.epsilon_decay = checkpoint['epsilon_decay']
 
     def update_epsilon(self):
         if self.epsilon > self.epsilon_min:
