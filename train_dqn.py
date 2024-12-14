@@ -274,10 +274,22 @@ try:
             save_checkpoint(episode, total_reward, max_position)
         
         # Save best model
-        if total_reward > best_reward and max_position > 200:
+        if (total_reward > best_reward or
+            (total_reward == best_reward and max_position > best_position) or
+            (total_reward == best_reward and max_position == best_position and agent.epsilon <= best_epsilon)):
+            
             best_reward = total_reward
+            best_position = max_position
+            best_epsilon = agent.epsilon
             save_checkpoint(episode, total_reward, max_position)
-            print(f"\nNew best reward: {best_reward:.2f}")
+            
+            print(f"\nNew best model saved with:")
+            if total_reward > best_reward:
+                print("New best model due to higher reward.")
+            elif total_reward == best_reward and max_position > best_position:
+                print("New best model due to better position.")
+            elif total_reward == best_reward and max_position == best_position and agent.epsilon <= best_epsilon:
+                print("New best model due to lower epsilon.")
         
         # Print progress
         print(f"\nEpisode {episode}/{starting_episode + episodes - 1}")
