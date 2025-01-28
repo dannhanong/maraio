@@ -53,7 +53,7 @@ class DQNAgent:
         self.learning_rate = 0.0001
         self.epsilon = 1.0
         self.epsilon_min = 0.1
-        self.epsilon_decay = 0.99
+        self.epsilon_decay = 0.9995
         
         self.memory = PrioritizedReplayBuffer(100000)
         
@@ -159,7 +159,7 @@ class DQNAgent:
         
         # Xử lý các thông số epsilon có thể không có trong checkpoint cũ
         self.epsilon_min = checkpoint.get('epsilon_min', 0.1)  # default 0.1
-        self.epsilon_decay = checkpoint.get('epsilon_decay', 0.99)
+        self.epsilon_decay = checkpoint.get('epsilon_decay', 0.9995)
 
     def update_epsilon(self):
         if self.epsilon > self.epsilon_min:

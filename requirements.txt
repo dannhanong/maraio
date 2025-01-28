@@ -6,4 +6,4 @@ torch
 numpy
 opencv-python
 pyyaml
-tensorboard 
+tensorboard
