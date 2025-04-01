@@ -23,6 +23,19 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 agent = DQNAgent(state_dim, action_dim, device)
 
+# Đường dẫn Replay Buffer
+replay_buffer_path = 'replay_buffer.pkl'
+
+# Tải Replay Buffer nếu tồn tại, nếu không khởi tạo replay buffer mới
+if Path(replay_buffer_path).exists():
+    print(f"Loading Replay Buffer from {replay_buffer_path}")
+    try:
+        agent.memory.load(replay_buffer_path)
+    except Exception as e:
+        print(f"Error loading Replay Buffer: {e}")
+else:
+    print("No existing Replay Buffer found. Starting with an empty buffer.")
+
 # Tạo thư mục với timestamp
 checkpoint_dir = Path('checkpoints/dqn')
 checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -41,19 +54,21 @@ if checkpoint_path.exists():
     checkpoint = torch.load(checkpoint_path)
     agent.load(checkpoint_path)
     print(f"Loaded model with epsilon: {agent.epsilon:.3f}")
+
+    # Nạp best_reward từ checkpointss
     best_reward = checkpoint.get('best_reward', float('-inf'))
-    
-    # Tìm checkpoint episode gần nhất
+    print(f"Best reward loaded: {best_reward}")
+
+    # Tiếp tục từ episode gần nhất
     checkpoints = list(checkpoint_dir.glob('checkpoint_episode_*.pth'))
     if checkpoints:
         latest_episode = max([int(x.stem.split('_')[-1]) for x in checkpoints])
         starting_episode = latest_episode + 1
-    
-    print(f"Continuing training from step: {agent.steps}")
+
     print(f"Continuing from episode: {starting_episode}")
-    print(f"Best reward so far: {best_reward:.2f}")
 else:
     print("No checkpoint found. Starting fresh training.")
+    best_reward = float('-inf')
 
 # Khởi tạo writer với tên có timestamp
 current_time = time.strftime('%Y%m%d_%H%M%S')
@@ -131,7 +146,7 @@ def calculate_reward(info, reward, prev_info):
     if position_delta > 0:
         total_reward += position_delta * 0.1  # Giảm reward cho việc di chuyển
     else:
-        total_reward -= 1.0  # Tăng penalty cho việc đứng yên/lùi
+        total_reward -= 2.0  # Tăng penalty cho việc đứng yên/lùi
     
     # Reward cho việc sống sót
     total_reward += 0.1
@@ -142,24 +157,24 @@ def calculate_reward(info, reward, prev_info):
     
     # Rewards
     if info.get('flag_get', False):
-        total_reward += 500
+        total_reward += 1000
     
     return total_reward
 
 def save_checkpoint(episode, reward, max_position):
     """Lưu checkpoint với thông tin training"""
-    global best_reward
+    global best_reward  # Biến toàn cục lưu best_reward
     
     checkpoint = {
         'model_state_dict': agent.model.state_dict(),
         'target_model_state_dict': agent.target_model.state_dict(),
         'optimizer_state_dict': agent.optimizer.state_dict(),
-        'epsilon': float(agent.epsilon),
+        'epsilon': float(agent.epsilon),  # Giá trị epsilon
         'epsilon_min': float(agent.epsilon_min),
         'epsilon_decay': float(agent.epsilon_decay),
         'steps': int(agent.steps),
         'episode': int(episode),
-        'best_reward': float(best_reward),
+        'best_reward': float(best_reward),  # Thêm best_reward vào checkpoint
         'max_position': int(max_position)
     }
     
@@ -167,7 +182,7 @@ def save_checkpoint(episode, reward, max_position):
     torch.save(checkpoint, checkpoint_dir / f'checkpoint_episode_{episode}.pth')
     
     # Lưu best model nếu đạt reward cao hơn
-    if reward > best_reward:
+    if reward >= best_reward:
         best_reward = reward
         torch.save(checkpoint, checkpoint_dir / 'best_model.pth')
 
@@ -188,6 +203,7 @@ def load_checkpoint(path, device):
                 
     agent.epsilon = checkpoint['epsilon']
     agent.steps = checkpoint['steps']
+    best_reward = checkpoint.get('best_reward', float('-inf'))  # Nạp best_reward từ checkpoint
     return checkpoint
 
 def cleanup_old_checkpoints(checkpoint_dir, keep_n=5):
@@ -272,17 +288,16 @@ try:
         # Save periodic checkpoint
         if episode % save_interval == 0:
             save_checkpoint(episode, total_reward, max_position)
+            agent.memory.save(replay_buffer_path)
         
         # Save best model
         if (total_reward > best_reward or
             (total_reward == best_reward and max_position > best_position) or
             (total_reward == best_reward and max_position == best_position and agent.epsilon <= best_epsilon)):
-            
             best_reward = total_reward
             best_position = max_position
             best_epsilon = agent.epsilon
             save_checkpoint(episode, total_reward, max_position)
-            
             print(f"\nNew best model saved with:")
             if total_reward > best_reward:
                 print("New best model due to higher reward.")
@@ -303,7 +318,7 @@ try:
         print("-" * 50)
         
         # Early stopping với điều kiện mới
-        if total_reward >= 5000 and max_position > 1000:  # Phải đạt cả reward và position
+        if total_reward >= 6000 and max_position > 1200:  # Phải đạt cả reward và position
             print("Reached target reward AND position! Training completed.")
             break
         
@@ -389,6 +404,7 @@ except KeyboardInterrupt:
     print("\nTraining interrupted by user")
     print("Saving final model...")
     agent.save(checkpoint_dir / 'interrupted_model.pth')
+    agent.memory.save(replay_buffer_path)
     print("Model saved!")
 
 finally:

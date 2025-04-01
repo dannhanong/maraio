@@ -106,5 +106,5 @@ if __name__ == "__main__":
     if not Path(model_path).exists():
         print(f"Error: Model not found at {model_path}")
     else:
-        play_mario(model_path, num_episodes=2)  # Reduced number of episodes
+        play_mario(model_path, num_episodes=1)  # Reduced number of episodes
   
