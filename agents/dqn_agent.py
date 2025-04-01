@@ -4,7 +4,9 @@ import torch.nn.functional as F
 import numpy as np
 import random
 from models.dqn_model import DQNModel
-from utils.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
+# from utils.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
+from utils.replay_buffer import PrioritizedReplayBuffer
+
 import torch.optim as optim
 
 class DQNNetwork(nn.Module):
@@ -48,12 +50,12 @@ class DQNAgent:
         self.use_double_dqn = True  # Có thể set True hoặc False tùy ý
         
         # Các hyperparameters khác
-        self.gamma = 0.99
+        self.gamma = 0.992
         self.batch_size = 128
         self.learning_rate = 0.0001
         self.epsilon = 1.0
         self.epsilon_min = 0.1
-        self.epsilon_decay = 0.99
+        self.epsilon_decay = 0.996
         
         self.memory = PrioritizedReplayBuffer(100000)
         
@@ -159,7 +161,7 @@ class DQNAgent:
         
         # Xử lý các thông số epsilon có thể không có trong checkpoint cũ
         self.epsilon_min = checkpoint.get('epsilon_min', 0.1)  # default 0.1
-        self.epsilon_decay = checkpoint.get('epsilon_decay', 0.99)
+        self.epsilon_decay = checkpoint.get('epsilon_decay', 0.992)
 
     def update_epsilon(self):
         if self.epsilon > self.epsilon_min:
